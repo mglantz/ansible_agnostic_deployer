@@ -48,6 +48,7 @@
       - enabled: true
         protocol: https
         response_hop_limit: 5
+    user_data: "{{ instance.user_data | default(omit, true) }}"
 
 - name: Save fact for IBM Cloud Virtual Server (VS) instance
   ansible.builtin.set_fact:
@@ -59,6 +60,7 @@
     state: available
     target: "{{ ibmcloud_vs_instance_create.resource.primary_network_interface[0]['id'] }}"
     resource_group: "{{ r_ibmcloud_resource_group_id }}"
+    region: "{{ ibmcloud_region }}"
   register: r_ibmcloud_fip
 
 - name: Print Floating IP Address
