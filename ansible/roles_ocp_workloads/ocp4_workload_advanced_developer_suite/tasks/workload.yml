@@ -61,6 +61,8 @@
   - ./setup_orchestrator.yml
   - ./setup_ocm.yml
   - ./setup_quay.yml
+  - ./setup_jenkins.yml
+  - ./setup_templates.yml
 
 - name: Update dynamic plugins
   ansible.builtin.include_tasks:
