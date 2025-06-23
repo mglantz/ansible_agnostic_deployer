@@ -43,6 +43,17 @@
       ibmcloud_api_key: "{{ ibmcloud_api_key }}"
       region: "{{ ibmcloud_region }}"
   tasks:
+    - name: Validate input
+      loop: "{{ instances | default([]) }}"
+      loop_control:
+        label: "{{ instance.name | default(instance) }}"
+        loop_var: instance
+      assert:
+        that:
+          - instance.name is defined
+          - instance.image is defined
+          - instance.profile is defined
+
     - name: Create ssh provision key
       ansible.builtin.include_role:
         name: create_ssh_provision_key
