@@ -15,6 +15,7 @@
 
 - when: ACTION == 'destroy'
   block:
+    - ansible.builtin.include_tasks: login.yaml
     - name: Get IBM Resource Group details
       ibm.cloudcollection.ibm_resource_group_info:
         ibmcloud_api_key: "{{ ibmcloud_api_key }}"
@@ -32,4 +33,5 @@
 
 - when: ACTION in ['status', 'start', 'stop']
   block:
+    - ansible.builtin.include_tasks: login.yaml
     - ansible.builtin.include_tasks: "{{ ACTION }}_instances.yaml"
