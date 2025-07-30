@@ -24,7 +24,7 @@ variable "ibmcloud_api_key" {
 variable "ibm_region_location" {
   description = "IBM Cloud region"
   type        = string
-  default     = "{{ ibmcloud_region }}"
+  default     = "us-east"
 }
 
 variable "requester_email" {
@@ -63,7 +63,7 @@ locals {
   resource_group_name = "${local.name_prefix}-${local.deployment_id}-rg"
   trusted_profile_name = "${local.name_prefix}-${local.deployment_id}-tp"
   cos_instance_name = "${local.name_prefix}-${local.deployment_id}-cos"
-  cos_bucket_name = "${local.name_prefix}-${local.deployment_id}-bucket"
+  cos_bucket_name = "${local.name_prefix}-${local.deployment_id}-bucket-${formatdate("YYYYMMDDHHMM", timestamp())}"
   instructlab_instance_name = "${local.name_prefix}-${local.deployment_id}-il"
   
   # Common tags
@@ -175,7 +175,7 @@ resource "ibm_resource_instance" "instructlab_instance" {
   }
 }
 
-# Grant Trusted Profile permissions to the Resource Group
+# Grant Trusted Profile minimal permissions to the Resource Group
 resource "ibm_iam_trusted_profile_policy" "instructlab_resource_group_policy" {
   profile_id = ibm_iam_trusted_profile.instructlab_trusted_profile.id
   roles      = ["Viewer"]
@@ -186,10 +186,12 @@ resource "ibm_iam_trusted_profile_policy" "instructlab_resource_group_policy" {
   }
 }
 
-# Grant Trusted Profile permissions to the COS instance
+# Grant Trusted Profile comprehensive permissions to the COS instance
+# Manager role is required for bucket visibility in console
+# Writer role enables bucket operations, Viewer role enables console access
 resource "ibm_iam_trusted_profile_policy" "instructlab_cos_policy" {
   profile_id = ibm_iam_trusted_profile.instructlab_trusted_profile.id
-  roles      = ["Object Reader", "Object Writer", "Content Reader", "Manager"]
+  roles      = ["Writer", "Viewer", "Manager"]
 
   resources {
     service              = "cloud-object-storage"
@@ -199,28 +201,28 @@ resource "ibm_iam_trusted_profile_policy" "instructlab_cos_policy" {
   depends_on = [ibm_resource_instance.instructlab_cos_instance]
 }
 
-# Grant Trusted Profile permissions to the COS bucket
-resource "ibm_iam_trusted_profile_policy" "instructlab_bucket_policy" {
+# Grant Trusted Profile bucket-specific permissions for console visibility
+# Bucket-specific policy with resource type is required for bucket visibility in console
+resource "ibm_iam_trusted_profile_policy" "instructlab_cos_bucket_policy" {
   profile_id = ibm_iam_trusted_profile.instructlab_trusted_profile.id
-  roles      = ["Object Reader", "Object Writer"]
+  roles      = ["Writer", "Viewer", "Manager"]
 
   resources {
     service              = "cloud-object-storage"
+    resource_instance_id = ibm_resource_instance.instructlab_cos_instance.id
     resource_type        = "bucket"
     resource             = ibm_cos_bucket.instructlab_bucket.bucket_name
-    resource_instance_id = ibm_resource_instance.instructlab_cos_instance.id
   }
 
-  depends_on = [
-    ibm_resource_instance.instructlab_cos_instance,
-    ibm_cos_bucket.instructlab_bucket
-  ]
+  depends_on = [ibm_cos_bucket.instructlab_bucket]
 }
 
-# Grant Trusted Profile InstructLab service Writer/Operator permissions to the resource group
+# Grant Trusted Profile InstructLab service Manager and Operator permissions to the resource group
+# Manager role is required to create service instances
+# Operator role is required for console dashboard visibility scoped to resource group
 resource "ibm_iam_trusted_profile_policy" "instructlab_service_rg_policy" {
   profile_id = ibm_iam_trusted_profile.instructlab_trusted_profile.id
-  roles      = ["Writer", "Operator"]
+  roles      = ["Manager", "Operator"]
 
   resources {
     service           = local.instructlab_service
@@ -230,10 +232,11 @@ resource "ibm_iam_trusted_profile_policy" "instructlab_service_rg_policy" {
   depends_on = [ibm_resource_group.instructlab_resource_group]
 }
 
-# Grant Trusted Profile InstructLab service Writer/Operator permissions to the service instance
-resource "ibm_iam_trusted_profile_policy" "instructlab_service_instance_policy" {
+# Grant Trusted Profile Viewer permissions to the specific InstructLab service instance
+# This provides console visibility while maintaining security isolation
+resource "ibm_iam_trusted_profile_policy" "instructlab_service_viewer_policy" {
   profile_id = ibm_iam_trusted_profile.instructlab_trusted_profile.id
-  roles      = ["Writer", "Operator"]
+  roles      = ["Viewer"]
 
   resources {
     service              = local.instructlab_service
@@ -243,9 +246,49 @@ resource "ibm_iam_trusted_profile_policy" "instructlab_service_instance_policy" 
   depends_on = [ibm_resource_instance.instructlab_instance]
 }
 
-# NOTE: Authorization policy for InstructLab service to access COS must be created manually
-# The current IBM Terraform provider version does not support the required arguments
-# Manual command: ibmcloud iam authorization-policy-create instructlab cloud-object-storage "Writer" --source-service-instance-id <instructlab-guid> --target-service-instance-id <cos-guid>
+# Grant Trusted Profile InstructLab service Manager permissions to the service instance
+# This allows full management of the InstructLab service instance after creation
+resource "ibm_iam_trusted_profile_policy" "instructlab_service_instance_policy" {
+  profile_id = ibm_iam_trusted_profile.instructlab_trusted_profile.id
+  roles      = ["Manager"]
+
+  resources {
+    service              = local.instructlab_service
+    resource_instance_id = ibm_resource_instance.instructlab_instance.id
+  }
+
+  depends_on = [ibm_resource_instance.instructlab_instance]
+}
+
+# Create authorization policy for InstructLab service to access COS
+# This allows the InstructLab service to access the COS instance with Writer permissions
+resource "ibm_iam_authorization_policy" "instructlab_cos_auth" {
+  source_service_name         = local.instructlab_service
+  source_resource_instance_id = ibm_resource_instance.instructlab_instance.guid
+  target_service_name         = "cloud-object-storage"
+  target_resource_instance_id = ibm_resource_instance.instructlab_cos_instance.guid
+  roles                       = ["Writer"]
+
+  depends_on = [
+    ibm_resource_instance.instructlab_instance,
+    ibm_resource_instance.instructlab_cos_instance
+  ]
+}
+
+
+# Grant Trusted Profile resource group COS permissions for console visibility
+# Must have same or greater permissions as instance-level policies for proper hierarchy
+resource "ibm_iam_trusted_profile_policy" "instructlab_cos_rg_policy" {
+  profile_id = ibm_iam_trusted_profile.instructlab_trusted_profile.id
+  roles      = ["Writer", "Viewer", "Manager"]
+
+  resources {
+    service           = "cloud-object-storage"
+    resource_group_id = local.resource_group_id
+  }
+
+  depends_on = [ibm_resource_group.instructlab_resource_group]
+}
 
 # Outputs
 output "resource_group_id" {
@@ -296,6 +339,11 @@ output "instructlab_instance_guid" {
 output "instructlab_instance_name" {
   description = "Name of the InstructLab service instance"
   value       = ibm_resource_instance.instructlab_instance.name
+}
+
+output "instructlab_direct_url" {
+  description = "Direct URL to access the InstructLab project (bypasses service listing for security)"
+  value       = "https://cloud.ibm.com${ibm_resource_instance.instructlab_instance.dashboard_url}"
 }
 
 output "deployment_summary" {
