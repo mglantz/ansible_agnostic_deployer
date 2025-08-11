@@ -15,7 +15,7 @@ ocp4_workload_cloud_architecture_workshop_user_prefix: "{{ ocp4_workload_authent
 # AMQ Streams Operator
 # ------------------------------------------------
 
-ocp4_workload_cloud_architecture_workshop_amq_streams_operator_channel: ""
+ocp4_workload_cloud_architecture_workshop_amq_streams_operator_channel: "amq-streams-2.9.x"
 ocp4_workload_cloud_architecture_workshop_amq_streams_operator_automatic_install_plan_approval: true
 ocp4_workload_cloud_architecture_workshop_amq_streams_operator_starting_csv: ""
 ocp4_workload_cloud_architecture_workshop_amq_streams_operator_name: amq-streams
