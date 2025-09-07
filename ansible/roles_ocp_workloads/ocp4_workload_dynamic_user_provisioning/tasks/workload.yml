@@ -329,7 +329,7 @@
     _showroom_content_repo: "{{ r_showroom_config.resources[0].data['CONTENT_URL'] | default('https://github.com/rhpds/showroom-ads-workshop.git') }}"
   when:
     - r_showroom_config.resources | length > 0
-    - ocp4_workload_dynamic_user_provisioning_showroom_content_repo == ""
+    - ocp4_workload_showroom_content_git_repo == ""
 
 - name: Set default showroom content repo if not discovered
   ansible.builtin.set_fact:
@@ -381,7 +381,7 @@
     user: "{{ _dynamic_username }}"
     data:
       openshift_api_url: "{{ openshift_api_url }}"
-      openshift_cluster_admin_token: "{{ openshift_cluster_admin_token }}"
+      openshift_cluster_admin_token: "{{ openshift_api_key }}"
       openshift_api_ca_cert: "{{ openshift_api_ca_cert }}"
       rhdh_url: "{{ _rhdh_url | default('') }}"
       rhdh_auth: oidc
@@ -415,7 +415,7 @@
       cluster_name: "cluster-{{ guid }}"
       openshift_console_url: "{{ _openshift_console_url }}"
       openshift_api_url: "{{ openshift_api_url }}"
-      openshift_cluster_admin_token: "{{ openshift_cluster_admin_token }}"
+      openshift_cluster_admin_token: "{{ openshift_api_key }}"
       openshift_api_ca_cert: "{{ openshift_api_ca_cert }}"
       rhdh_url: "{{ _rhdh_url | default('') }}"
       rhdh_auth: oidc
@@ -458,8 +458,8 @@
     release_values:
       content:
         user_data: "{{ _showroom_user_data | to_nice_yaml(width=1337, default_style='\"') }}"
-        repoUrl: "{{ _showroom_content_repo | default(ocp4_workload_dynamic_user_provisioning_showroom_content_repo) }}"
-        repoRef: "{{ ocp4_workload_dynamic_user_provisioning_showroom_content_ref }}"
+        repoUrl: "{{ _showroom_content_repo | default(ocp4_workload_showroom_content_git_repo) }}"
+        repoRef: "{{ ocp4_workload_showroom_content_git_repo_ref }}"
       guid: "{{ guid }}"
       deployer:
         domain: "{{ _ocp_apps_domain }}"

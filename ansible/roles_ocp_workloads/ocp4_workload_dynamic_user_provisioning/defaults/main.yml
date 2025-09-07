@@ -7,11 +7,11 @@ silent: false
 # Username will be auto-generated as user-{guid}
 ocp4_workload_dynamic_user_provisioning_password: "{{ guid | hash('md5') | truncate(8, True, '') }}"
 
-# OpenShift access configuration - uses standard variables from openshift_cluster_admin_service_account role
-# These variables are set by the openshift_cluster_admin_service_account role:
-# - openshift_cluster_admin_token
+# OpenShift access configuration - uses standard ocp-workloads variables
+# These variables are set by the ocp-workloads config:
+# - openshift_api_key
 # - openshift_api_ca_cert
-# - openshift_api_url (derived from kubernetes connection)
+# - openshift_api_url
 ocp4_workload_dynamic_user_provisioning_openshift_console_url: ""
 
 # Legacy admin credentials (deprecated - use token auth instead)
@@ -35,12 +35,10 @@ ocp4_workload_dynamic_user_provisioning_keycloak_realm: trusted-artifact-signer
 # GitLab configuration
 ocp4_workload_dynamic_user_provisioning_gitlab_skip_if_exists: true
 
-# Showroom configuration
-ocp4_workload_dynamic_user_provisioning_showroom_content_repo: ""
-ocp4_workload_dynamic_user_provisioning_showroom_content_ref: main
-ocp4_workload_dynamic_user_provisioning_showroom_chart_package_url: https://rhpds.github.io/showroom-deployer
-ocp4_workload_dynamic_user_provisioning_showroom_chart_name: showroom-single-pod
-ocp4_workload_dynamic_user_provisioning_showroom_chart_version: "1.3.4"
+# Showroom configuration - only essential variables from ocp4_workload_showroom
+ocp4_workload_showroom_content_git_repo: "https://github.com/rhpds/showroom-ads-workshop.git"
+ocp4_workload_showroom_content_git_repo_ref: main
+ocp4_workload_showroom_content_only: true
 
 # =============================================
 # Resource Quota and Limits Configuration
