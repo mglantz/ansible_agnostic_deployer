@@ -15,18 +15,17 @@ spec:
     kserve:
       {{ ocp4_workload_openshift_ai_kserve_config | to_yaml | indent(6) }}
     kueue:
-      managementState: {{ ocp4_workload_openshift_ai_kueue }}
+      {{ ocp4_workload_openshift_ai_kueue_config | to_yaml | indent(6) }}
     modelmeshserving:
-      managementState: {{ ocp4_workload_openshift_ai_modelmeshserving }}
+      {{ ocp4_workload_openshift_ai_modelregistry_config }}
     modelregistry:
-      managementState: {{ ocp4_workload_openshift_ai_modelregistry }}
-      registriesNamespace: {{ ocp4_workload_openshift_ai_modelregistries_namespace }}
+      {{ ocp4_workload_openshift_ai_modelregistry_config | to_yaml | indent(6) }}
     ray:
-      managementState: {{ ocp4_workload_openshift_ai_ray }}
+      {{ ocp4_workload_openshift_ai_ray_config | to_yaml | indent(6) }}
     trustyai:
-      managementState: {{ ocp4_workload_openshift_ai_trustyai }}
+      {{ ocp4_workload_openshift_ai_trustyai_config | to_yaml | indent(6) }}
     workbenches:
-      managementState: {{ ocp4_workload_openshift_ai_workbenches }}
+      {{ ocp4_workload_openshift_ai_workbenches_config | to_yaml | indent(6) }}
 {% else %}
 apiVersion: datasciencecluster.opendatahub.io/v2
 kind: DataScienceCluster
@@ -43,19 +42,25 @@ spec:
     kserve:
       {{ ocp4_workload_openshift_ai_kserve_config | to_yaml | indent(6) }}
     kueue:
-      managementState: {{ ocp4_workload_openshift_ai_kueue }}
+      {{ ocp4_workload_openshift_ai_kueue_config }}
     modelmeshserving:
       managementState: {{ ocp4_workload_openshift_ai_modelmeshserving }}
     modelregistry:
-      managementState: {{ ocp4_workload_openshift_ai_modelregistry }}
-      registriesNamespace: {{ ocp4_workload_openshift_ai_modelregistries_namespace }}
+      {{ ocp4_workload_openshift_ai_modelregistry_config | to_yaml | indent(6) }}
     ray:
-      managementState: {{ ocp4_workload_openshift_ai_ray }}
+      {{ ocp4_workload_openshift_ai_ray_config | to_yaml | indent(6) }}
     trustyai:
-      managementState: {{ ocp4_workload_openshift_ai_trustyai }}
+      {{ ocp4_workload_openshift_ai_trustyai_config | to_yaml | indent(6) }}
     workbenches:
-      managementState: {{ ocp4_workload_openshift_ai_workbenches }}
-    feastoperator: {{ ocp4_workload_openshift_ai_feastoperator_config }}
-    llamastackoperator: {{ ocp4_workload_openshift_ai_llamastackoperator_config }}
-    kueue: {{ ocp4_workload_openshift_ai_kueue_config }}
+      {{ ocp4_workload_openshift_ai_workbenches_config | to_yaml | indent(6) }}
+    feastoperator:
+      {{ ocp4_workload_openshift_ai_feastoperator_config | to_yaml | indent(6) }}
+    llamastackoperator:
+      {{ ocp4_workload_openshift_ai_llamastackoperator_config | to_yaml | indent(6) }}
+    kueue:
+      {{ ocp4_workload_openshift_ai_kueue_config | to_yaml | indent(6) }}
+    aipipelines:
+      {{ ocp4_workload_openshift_ai_aipipelines_config | to_yaml | indent(6) }}
+    trainingoperator:
+     {{ ocp4_workload_openshift_ai_trainingoperator_config | to_yaml | indent(6) }}
 {% endif %}
