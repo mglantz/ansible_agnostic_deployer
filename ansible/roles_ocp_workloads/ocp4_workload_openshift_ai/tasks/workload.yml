@@ -18,27 +18,59 @@
     install_operator_catalogsource_image: "{{ ocp4_workload_openshift_ai_catalog_snapshot_image | default('') }}"
     install_operator_catalogsource_image_tag: "{{ ocp4_workload_openshift_ai_catalog_snapshot_image_tag | default('') }}"
 
+- name: Get installed CSVs
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: openshift-operators
+  register: r_csvs
+
+- name: Get cluster ingress config
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: Ingress
+    name: cluster
+  register: r_ingress_config
+  until: r_ingress_config.resources is defined
+  retries: 10
+  delay: 30
+
+- name: Set ingress domain
+  ansible.builtin.set_fact:
+    _ocp4_workload_openshift_ai_ingress_domain: "{{ r_ingress_config.resources[0].spec.domain }}"
+
+- name: Find CSV for the rhods operator
+  set_fact:
+    _ocp4_workload_openshift_ai_installed_operator_csv: "{{ item.metadata.name }}"
+  loop: "{{ r_csvs.resources }}"
+  when: "'rhods-operator' in item.metadata.name"
+
+- name: Set Openshift AI Version 3 boolean
+  ansible.builtin.set_fact:
+    _ocp4_workload_openshift_ai_version_3: "{{ _ocp4_workload_openshift_ai_installed_operator_csv.startswith('rhods-operator.3.') }}"
+
 - name: Create OpenShift AI Data Science Cluster
-  when: ocp4_workload_openshift_ai_deploy_dsc | bool
+  when: _ocp4_workload_openshift_ai_version_3 | bool
   kubernetes.core.k8s:
     state: present
-    definition: "{{ lookup('template', './templates/redhat-datasciencecluster.yaml.j2') | from_yaml }}"
+    template: redhat-datasciencecluster.yaml.j2
   register: r_ds_cluster
   until: not r_ds_cluster.failed
   retries: 10
   delay: 30
 
-- name: Print Data Science Cluster for debugging
-  ansible.builtin.debug:
-    msg: r_ds_cluster
-    verbosity: 2
+- name: Create OpenShift AI Dashboard Route
+  when: _ocp4_workload_openshift_ai_version_3 | bool
+  kubernetes.core.k8s:
+    state: present
+    template: rhods-dashboard-route.yaml.j2
 
 - name: Get the OpenShift AI dashboard route
   kubernetes.core.k8s_info:
     api_version: route.openshift.io/v1
     kind: Route
-    name: rhods-dashboard
-    namespace: redhat-ods-applications
+    name: "{{ 'data-science-gateway-data-science-gateway-class' if _ocp4_workload_openshift_ai_version_3 else 'rhods-dashboard' }}"
+    namespace: "{{ 'openshift-ingress' if _ocp4_workload_openshift_ai_version_3 else 'redhat-ods-applications' }}"
   register: r_odh_dashboard_route
   until:
   - r_odh_dashboard_route.resources is defined
