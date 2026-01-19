@@ -43,6 +43,7 @@
         key_algorithm: "hmac-sha256"
         state: absent
       loop:
+        - "api-int"
         - "api"
         - "*.apps"
 
